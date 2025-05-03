@@ -1,0 +1,777 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jampol Personal Website</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Orbitron:wght@400;700&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            color: #fff;
+            background: #000;
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .animated-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 0, 0, 0.1) 0%, transparent 70%);
+            animation: pulse 5s infinite;
+        }
+
+        .animated-bg .particle {
+            position: absolute;
+            background: #ff0000;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: moveParticle 20s linear infinite;
+        }
+
+        .particle:nth-child(1) { width: 5px; height: 5px; top: 10%; left: 20%; animation-delay: 0s; }
+        .particle:nth-child(2) { width: 8px; height: 8px; top: 30%; left: 50%; animation-delay: 5s; }
+        .particle:nth-child(3) { width: 6px; height: 6px; top: 60%; left: 70%; animation-delay: 10s; }
+        .particle:nth-child(4) { width: 7px; height: 7px; top: 80%; left: 30%; animation-delay: 15s; }
+
+        @keyframes moveParticle {
+            0% { transform: translate(0, 0); opacity: 0.3; }
+            50% { opacity: 0.5; }
+            100% { transform: translate(100vw, 100vh); opacity: 0; }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 0.3; }
+            100% { transform: scale(1); opacity: 0.5; }
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 20px;
+            position: relative;
+        }
+
+        nav {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 10px 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 15px rgba(255, 0, 0, 0.4);
+            border-bottom: 1px solid rgba(255, 0, 0, 0.5);
+        }
+
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav .logo {
+            font-family: 'Orbitron', sans-serif;
+            color: #ff0000;
+            font-size: 24px;
+            font-weight: 700;
+            text-shadow: 0 0 8px #ff0000;
+            transition: transform 0.3s ease;
+        }
+
+        nav .logo:hover {
+            transform: scale(1.05);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 20px;
+        }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            padding: 8px 12px;
+            border-radius: 5px;
+            transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+        }
+
+        nav ul li a:hover {
+            color: #ff0000;
+            background: rgba(255, 0, 0, 0.2);
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+        }
+
+        nav ul li a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: #ff0000;
+            transition: width 0.3s ease, left 0.3s ease;
+        }
+
+        nav ul li a:hover::after {
+            width: 100%;
+            left: 0;
+        }
+
+        .hero {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8));
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .hero-content .profile-img {
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #ff0000;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
+            transition: transform 0.3s ease;
+        }
+
+        .hero-content .profile-img:hover {
+            transform: scale(1.05);
+        }
+
+        .hero-content h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            color: #ff0000;
+            text-shadow: 0 0 12px #ff0000;
+            margin-bottom: 10px;
+        }
+
+        .hero-content p {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.5rem;
+            color: #E5E7EB;
+            text-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
+        }
+
+        .hero-content .btn-electric {
+            background: linear-gradient(45deg, #ff0000, #e60000);
+            color: #FFFFFF;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .hero-content .btn-electric:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+        }
+
+        .content-section {
+            padding: 100px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.8rem;
+            color: #ff0000;
+            text-shadow: 0 0 12px #ff0000;
+            margin-bottom: 2.5rem;
+            text-align: center;
+        }
+
+        .content-card {
+            background: linear-gradient(45deg, rgba(20, 10, 50, 0.95), rgba(5, 0, 20, 0.95));
+            border: 2px solid #ff0000;
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin: 30px 0;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .content-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at top left, rgba(255, 0, 0, 0.2), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
+
+        .content-card:hover::before {
+            opacity: 1;
+        }
+
+        .content-card:hover {
+            transform: translateY(-15px);
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.7);
+        }
+
+        .content-card h3 {
+            font-family: 'Orbitron', sans-serif;
+            color: #ff0000;
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 8px #ff0000;
+        }
+
+        .content-card p {
+            font-family: 'Montserrat', sans-serif;
+            color: #E5E7EB;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .about-text {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid #ff0000;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+        }
+
+        .my-life-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .my-life-img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 10px;
+            box-shadow: 0 0 12px rgba(255, 0, 0, 0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .my-life-img:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
+        }
+
+        .my-life-caption {
+            font-family: 'Montserrat', sans-serif;
+            color: #D8BFD8;
+            font-size: 0.95rem;
+            text-align: center;
+            margin-top: 0.75rem;
+        }
+
+        .btn-electric {
+            background: linear-gradient(45deg, #ff0000, #e60000);
+            color: #FFFFFF;
+            border: none;
+            padding: 0.8rem 1.8rem;
+            border-radius: 30px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: inline-block;
+        }
+
+        .btn-electric:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+            color: #FFFFFF;
+        }
+
+        .education-card .timeline-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .education-item {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 1.2rem;
+            border: 1px solid #ff0000;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+        }
+
+        .education-item img {
+            width: 45px;
+            height: 45px;
+            object-fit: contain;
+            margin-right: 1.2rem;
+        }
+
+        .education-item h5 {
+            font-family: 'Orbitron', sans-serif;
+            color: #ff0000;
+            font-size: 1.2rem;
+            margin-bottom: 0.6rem;
+            text-shadow: 0 0 5px #ff0000;
+        }
+
+        .education-item p {
+            margin: 0;
+            color: #D8BFD8;
+            font-size: 0.95rem;
+        }
+
+        .education-item small {
+            color: #A9A9A9;
+            font-size: 0.85rem;
+        }
+
+        .contact-section {
+            background: linear-gradient(135deg, rgba(10, 0, 30, 0.9), rgba(0, 0, 0, 0.9));
+            padding: 100px 0;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .contact-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(255, 0, 0, 0.3), transparent 70%);
+            opacity: 0.5;
+            z-index: 0;
+        }
+
+        .contact-card {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ff0000;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(5px);
+        }
+
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .contact-form input,
+        .contact-form textarea {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ff0000;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1rem;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .contact-form input:focus,
+        .contact-form textarea:focus {
+            outline: none;
+            border-color: #ff3333;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+        }
+
+        .contact-form textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .contact-form button {
+            background: linear-gradient(45deg, #ff0000, #e60000);
+            color: #fff;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .contact-form button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+        }
+
+        hr.custom-hr {
+            border: 0;
+            height: 1px;
+            background: linear-gradient(to right, transparent, #ff0000, transparent);
+            margin: 2rem 0;
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.9);
+            text-align: center;
+            padding: 50px 0;
+            box-shadow: 0 -2px 15px rgba(255, 0, 0, 0.4);
+            position: relative;
+            z-index: 1;
+        }
+
+        .footer .logo {
+            font-family: 'Orbitron', sans-serif;
+            color: #ff0000;
+            font-size: 26px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #ff0000;
+        }
+
+        .footer p {
+            font-family: 'Montserrat', sans-serif;
+            color: #E5E7EB;
+            font-size: 1rem;
+        }
+
+        .footer form {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .footer input {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ff0000;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            width: 260px;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .footer button {
+            background: #ff0000;
+            color: #000;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            transition: background 0.3s ease;
+        }
+
+        .footer button:hover {
+            background: #e60000;
+        }
+
+        @media (max-width: 992px) {
+            .my-life-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .content-card {
+                margin: 20px 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-content .profile-img {
+                width: 280px;
+                height: 280px;
+            }
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+            .hero-content p {
+                font-size: 1.2rem;
+            }
+            .section-title {
+                font-size: 2.2rem;
+            }
+            .content-card h3 {
+                font-size: 1.8rem;
+            }
+            .my-life-img {
+                height: 140px;
+            }
+            .contact-card {
+                padding: 2rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .my-life-grid {
+                grid-template-columns: 1fr;
+            }
+            .content-card {
+                padding: 1.5rem;
+            }
+            .my-life-img {
+                height: 120px;
+            }
+            .my-life-caption {
+                font-size: 0.85rem;
+            }
+            .contact-form input,
+            .contact-form textarea {
+                font-size: 0.9rem;
+            }
+            .footer input {
+                width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="animated-bg">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <nav>
+        <div class="container">
+            <div class="logo">JAMPOL</div>
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <img src="/pic/Media.jpg" alt="Profile Picture" class="profile-img">
+            <h1>John Paul Pastrana</h1>
+            <p>Web Developer/Tech Enthusiast</p>
+            <a href="#about" class="btn-electric">Check My Personal Website</a>
+        </div>
+    </section>
+
+    <section id="about" class="content-section">
+        <div class="container">
+            <h2 class="section-title" data-aos="fade-up">About Me</h2>
+            <div class="content-card about-text" data-aos="fade-up">
+                <p>I’m John Paul L. Pastrana, an IT student with a passion for web development, currently learning the ropes and building my skills one line of code at a time. I focus on creating user-friendly and efficient websites using modern web technologies.</p>
+                <p>My goal is to build innovative digital solutions that make a difference. I’m proficient in HTML, CSS, and JavaScript, and I’m always eager to explore new tools and frameworks to enhance my skills.</p>
+                <p>Outside of tech, I love playing basketball and living the tambay life—just keeping things chill while chasing big dreams. I bring enthusiasm and a collaborative spirit to every project, aiming to turn ideas into reality with creativity and dedication.</p>
+            </div>
+            <div class="content-card" data-aos="fade-up" data-aos-delay="100">
+                <h3>My Life</h3>
+                <div class="my-life-grid">
+                    <div>
+                        <img src="pic/bora.jpg" alt="Basketball" class="my-life-img">
+                        <div class="my-life-caption"></div>
+                    </div>
+                    <div>
+                        <img src="pic/asimms.jpg" alt="Basketball" class="my-life-img">
+                        <div class="my-life-caption"></div>
+                    </div>
+                    <div>
+                        <img src="pic/emm.jpg" alt="Coding" class="my-life-img">
+                        <div class="my-life-caption"></div>
+                    </div>
+                    <div>
+                        <img src="pic/fam.jpg" alt="Music" class="my-life-img">
+                        <div class="my-life-caption"></div>
+                    </div>
+                    <div>
+                        <img src="pic/insans.jpg" alt="Gaming" class="my-life-img">
+                        <div class="my-life-caption"></div>
+                    </div>
+                    <div>
+                        <img src="pic/asim.jpg" alt="Hangout" class="my-life-img">
+                        <div class="my-life-caption"></div>
+                    </div>
+                    <div>
+                        <img src="pic/nbtc.jpg" alt="Travel" class="my-life-img">
+                        <div class="my-life-caption"></div>
+                    </div>
+                    <div>
+                        <img src="pic/ic3.jpg" alt="Travel" class="my-life-img">
+                        <div class="my-life-caption"></div>
+                    </div>
+                    <div>
+                        <img src="pic/singko.jpg" alt="Travel" class="my-life-img">
+                        <div class="my-life-caption"></div>
+                    </div>
+                    <div>
+                        <img src="pic/pastrana 11.jpg" alt="Study" class="my-life-img">
+                        <div class="my-life-caption"></div>
+                    </div>
+                    <div>
+                        <img src="pic/asim booth.jpg" alt="Chill" class="my-life-img">
+                        <div class="my-life-caption"></div>
+                    </div>
+                    <div>
+                        <img src="pic/trophy.jpg" alt="Chill" class="my-life-img">
+                        <div class="my-life-caption"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="content-card" data-aos="fade-up" data-aos-delay="200">
+                <h3>Projects</h3>
+                <p>Explore the projects I’ve worked on, showcasing my growing skills in web development and my commitment to creating functional solutions.</p>
+                <a href="https://github.com/paul51?tab=repositories" target="_blank" class="btn-electric mt-3">View Projects</a>
+            </div>
+            <div class="content-card education-card" data-aos="fade-up" data-aos-delay="300">
+                <h3>Education Background</h3>
+                <div class="timeline-wrapper">
+                    <div class="education-item d-flex align-items-center">
+                        <img src="pic/martin.jpg" alt="Elementary Icon">
+                        <div>
+                            <h5>Elementary School</h5>
+                            <p>Martin Esperanza Elementary School <br><small>2007–2013</small></p>
+                        </div>
+                    </div>
+                    <div class="education-item d-flex align-items-center">
+                        <img src="pic/wtmnhs.jpg" alt="High School Icon">
+                        <div>
+                            <h5>Secondary School</h5>
+                            <p>Wenceslao Trinidad Memorial National Highschool <br><small>2013–2017</small></p>
+                        </div>
+                    </div>
+                    <div class="education-item d-flex align-items-center">
+                        <img src="pic/nu.jpg" alt="College Icon">
+                        <div>
+                            <h5>Tertiary School</h5>
+                            <p>National University Lipa <br><small>2023–Present</small></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="contact-section">
+        <div class="container">
+            <h2 class="section-title" data-aos="fade-up">Contact Me</h2>
+            <div class="contact-card" data-aos="fade-up" data-aos-delay="100">
+                <form class="contact-form" action="mailto:your.email@example.com" method="post" enctype="text/plain">
+                    <input type="text" name="name" placeholder="Your Name" required>
+                    <input type="email" name="email" placeholder="Your Email" required>
+                    <textarea name="message" placeholder="Your Message" required></textarea>
+                    <button type="submit">Send Message</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="logo">JAMPOL</div>
+            <p>Stay updated with my latest projects and tech adventures.</p>
+            <form id="newsletter-form" onsubmit="alert('Subscribed!'); return false;">
+                <input type="email" placeholder="Your Email" required>
+                <button type="submit">Subscribe</button>
+            </form>
+            <p style="margin-top: 20px;">© 2025 JAMPOL. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({ duration: 800, once: true });
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
